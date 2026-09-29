@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>ずけい デザイン</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --ink: #2b2b2b;
+    --sub: #6b7280;
+    --line: #d9dee8;
+    --accent: #1565ff;
+    --accent-soft: #e3ecff;
+    --danger: #e5484d;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+  body {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  button { font: inherit; color: inherit; touch-action: manipulation; }
+
+  /* ---- ツールバー ---- */
+  #toolbar {
+    display: flex; flex-wrap: wrap; align-items: stretch; justify-content: center; gap: 6px;
+    padding: 8px 10px; background: var(--panel); border-bottom: 2px solid var(--line);
+  }
+  .tb-group { display: flex; gap: 6px; padding-right: 8px; border-right: 2px solid var(--line); }
+  .tb-group:last-child { border-right: none; padding-right: 0; }
+  .tb {
+    width: 68px; min-height: 64px; padding: 4px 2px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    border: 2px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer;
+    font-size: 13px; font-weight: 700; line-height: 1.1;
+  }
+  .tb .ic { font-size: 24px; line-height: 1; }
+  .tb:active:not(:disabled) { background: var(--accent-soft); transform: scale(0.96); }
+  .tb:disabled { opacity: 0.35; }
+  .tb[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .tb.danger { color: var(--danger); }
+  .tb.finish { background: #fff5d6; border-color: #f2b705; }
+
+  /* ---- 本体 ---- */
+  #main { flex: 1; display: flex; min-height: 0; }
+  #tray {
+    width: 150px; flex-shrink: 0; overflow-y: auto;
+    background: var(--panel); border-right: 2px solid var(--line);
+    padding: 10px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .tray-title { font-size: 14px; font-weight: 700; color: var(--sub); text-align: center; }
+  .tray-item {
+    width: 100%; padding: 8px 4px 6px; border: 2px solid var(--line); border-radius: 14px;
+    background: #fff; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    cursor: grab; touch-action: none;
+  }
+  .tray-item:active { background: var(--accent-soft); border-color: var(--accent); }
+  .tray-item svg { width: 110px; height: 64px; pointer-events: none; }
+  .tray-item .label { font-size: 16px; font-weight: 700; pointer-events: none; }
+  .tray-item rt { font-size: 10px; font-weight: 400; color: var(--sub); }
+  #colors { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .swatch {
+    height: 44px; border-radius: 12px; border: 3px solid rgba(0,0,0,0.15); cursor: pointer;
+  }
+  .swatch:disabled { opacity: 0.35; }
+  .swatch:active:not(:disabled) { transform: scale(0.92); }
+
+  #canvas-wrap { flex: 1; position: relative; min-width: 0; background: #fff; }
+  #canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #empty-hint {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    font-size: 24px; font-weight: 700; color: #b3bac7; pointer-events: none; text-align: center; line-height: 1.6;
+  }
+
+  /* ---- かんせい（スクリーンショット用） ---- */
+  body.finished #toolbar, body.finished #tray, body.finished #overlay, body.finished #empty-hint { display: none; }
+  #finish-hint {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: rgba(0,0,0,0.7); color: #fff; padding: 10px 20px; border-radius: 999px;
+    font-size: 18px; font-weight: 700; pointer-events: none; opacity: 0; transition: opacity 0.6s;
+  }
+  #finish-hint.show { opacity: 1; }
+
+  /* ---- 確認ダイアログ ---- */
+  #confirm {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+    display: none; align-items: center; justify-content: center; z-index: 10;
+  }
+  #confirm.open { display: flex; }
+  #confirm .box {
+    background: #fff; border-radius: 20px; padding: 28px 32px; text-align: center; min-width: 320px;
+  }
+  #confirm .msg { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+  #confirm .btns { display: flex; gap: 16px; justify-content: center; }
+  #confirm .btns button {
+    min-width: 120px; min-height: 60px; border-radius: 14px; font-size: 20px; font-weight: 700;
+    border: 2px solid var(--line); background: #fff;
+  }
+  #confirm .btns .yes { background: var(--danger); border-color: var(--danger); color: #fff; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <div class="tb-group">
+    <button class="tb" id="btn-undo"><span class="ic">↶</span>もどす</button>
+    <button class="tb" id="btn-redo"><span class="ic">↷</span>やり<br>なおす</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb" id="btn-dup-h" data-need-sel><span class="ic">➡️</span>よこに<br>ふやす</button>
+    <button class="tb" id="btn-dup-v" data-need-sel><span class="ic">⬆️</span>たてに<br>ふやす</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb" id="btn-rot-l" data-need-sel><span class="ic">⟲</span>ひだりに<br>まわす</button>
+    <button class="tb" id="btn-rot-r" data-need-sel><span class="ic">⟳</span>みぎに<br>まわす</button>
+    <button class="tb" id="btn-flip" data-need-sel><span class="ic">⇆</span>うら<br>がえす</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb" id="btn-front" data-need-sel><span class="ic">⏫</span>まえへ</button>
+    <button class="tb" id="btn-back" data-need-sel><span class="ic">⏬</span>うしろへ</button>
+    <button class="tb danger" id="btn-del" data-need-sel><span class="ic">✖️</span>けす</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb" id="btn-snap" aria-pressed="true"><span class="ic">🧲</span>ぴったり</button>
+    <button class="tb" id="btn-grid" aria-pressed="true"><span class="ic">▦</span>ほうがん</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb danger" id="btn-clear"><span class="ic">🗑️</span>ぜんぶ<br>けす</button>
+    <button class="tb finish" id="btn-finish"><span class="ic">⭐</span>かんせい</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="tray">
+    <div class="tray-title">かたち</div>
+    <button class="tray-item" data-type="par"><svg></svg><span class="label"><ruby>平行四辺形<rt>へいこうしへんけい</rt></ruby></span></button>
+    <button class="tray-item" data-type="rho"><svg></svg><span class="label"><ruby>ひし形<rt>ひしがた</rt></ruby></span></button>
+    <button class="tray-item" data-type="tra"><svg></svg><span class="label"><ruby>台形<rt>だいけい</rt></ruby></span></button>
+    <div class="tray-title">いろ</div>
+    <div id="colors"></div>
+  </div>
+  <div id="canvas-wrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid-pat" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e6eaf2" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect id="grid" width="100%" height="100%" fill="url(#grid-pat)"/>
+      <g id="shapes"></g>
+      <g id="snapfx"></g>
+      <g id="overlay"></g>
+    </svg>
+    <div id="empty-hint">ひだりの かたちを<br>タッチしてね</div>
+  </div>
+</div>
+
+<div id="finish-hint">もどるときは がめんを タッチ</div>
+
+<div id="confirm">
+  <div class="box">
+    <div class="msg">ぜんぶ けしますか？</div>
+    <div class="btns">
+      <button class="no" id="confirm-no">やめる</button>
+      <button class="yes" id="confirm-yes">けす</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ===== 定数 =====
+const NS = 'http://www.w3.org/2000/svg';
+const RAD = Math.PI / 180;
+const UNIT = 20;          // 長さのきざみ（方眼1マス）
+const ROT_STEP = 15;      // 回転・角度のきざみ（度）
+const SNAP_DIST = 24;     // 吸着する距離（px）
+const SNAP_ANG = 8;       // 吸着する角度差（度）
+const HISTORY_MAX = 50;
+const STORE_KEY = 'zukei_design_v1';
+const COLORS = ['#4f8ff7', '#ff7eb6', '#ffd23f', '#5cd65c', '#ff8c42', '#a178ff', '#3fd0d4', '#ff5a5a', '#ffffff', '#6b6b6b'];
+
+// 図形の種類。p は形のパラメータ、handles は変形できる頂点番号
+// 頂点は P0=左下, P1=右下, P2=右上, P3=左上（ローカル座標、y は下向きが正）
+const TYPES = {
+  par: { color: '#4f8ff7', p: { a: 120, b: 80, ang: 60 }, handles: [1, 3] },        // a:底辺 b:斜辺 ang:角度
+  rho: { color: '#ff7eb6', p: { s: 80, ang: 60 }, handles: [1, 3] },                 // s:一辺
+  tra: { color: '#ffd23f', p: { a: 160, t: 80, b: 80, ang: 60 }, handles: [1, 2, 3] } // a:下底 t:上底 b:左の辺
+};
+
+// ===== 状態 =====
+let state = { shapes: [], snapOn: true, gridOn: true };
+let selectedId = null;
+let drag = null;       // 進行中のドラッグ
+let trayPending = null; // トレイを押した直後（タップかドラッグか未確定）
+let snapLine = null;   // 吸着先の辺（ハイライト用）
+let history = [];
+let hIndex = -1;
+let nextId = 1;
+
+const $ = (id) => document.getElementById(id);
+const svg = $('canvas');
+const shapesG = $('shapes');
+const snapG = $('snapfx');
+const overlayG = $('overlay');
+
+// ===== 幾何 =====
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const snapLen = (v, min = UNIT * 2) => clamp(Math.round(v / UNIT) * UNIT, min, 400);
+const normDeg = (d) => ((d % 360) + 360) % 360;
+
+function localPts(type, p) {
+  const c = Math.cos(p.ang * RAD), sn = Math.sin(p.ang * RAD);
+  if (type === 'rho') {
+    const s = p.s;
+    return [{ x: 0, y: 0 }, { x: s, y: 0 }, { x: s + s * c, y: -s * sn }, { x: s * c, y: -s * sn }];
+  }
+  const bx = p.b * c, by = -p.b * sn;
+  if (type === 'par') return [{ x: 0, y: 0 }, { x: p.a, y: 0 }, { x: p.a + bx, y: by }, { x: bx, y: by }];
+  return [{ x: 0, y: 0 }, { x: p.a, y: 0 }, { x: bx + p.t, y: by }, { x: bx, y: by }];
+}
+
+function centroid(pts) {
+  let x = 0, y = 0;
+  for (const v of pts) { x += v.x; y += v.y; }
+  return { x: x / pts.length, y: y / pts.length };
+}
+
+// ワールド座標 = 中心(x,y) + 回転(rot) × 反転(flip) × (ローカル頂点 - ローカル重心)
+function worldPts(s) {
+  const L = localPts(s.type, s.p);
+  const c = centroid(L);
+  const f = s.flip ? -1 : 1;
+  const cos = Math.cos(s.rot * RAD), sin = Math.sin(s.rot * RAD);
+  return L.map((v) => {
+    const dx = (v.x - c.x) * f, dy = v.y - c.y;
+    return { x: s.x + dx * cos - dy * sin, y: s.y + dx * sin + dy * cos };
+  });
+}
+
+// 頂点ハンドルで変形する。P0 のワールド位置は固定したまま形のパラメータだけ変える。
+// どの変形でも図形の性質（平行・等しい辺）は localPts の作り方で自動的に保たれる。
+function deform(s, idx, P0w, pt) {
+  const cos = Math.cos(s.rot * RAD), sin = Math.sin(s.rot * RAD);
+  const dx = pt.x - P0w.x, dy = pt.y - P0w.y;
+  let lx = dx * cos + dy * sin;
+  const ly = -dx * sin + dy * cos;
+  if (s.flip) lx = -lx;
+  const p = s.p;
+  if (idx === 1) {
+    if (s.type === 'rho') p.s = snapLen(lx); else p.a = snapLen(lx);
+  } else if (idx === 3) {
+    const len = snapLen(Math.hypot(lx, ly));
+    const ang = clamp(Math.round(Math.atan2(-ly, lx) / RAD / ROT_STEP) * ROT_STEP, 15, 165);
+    if (s.type === 'rho') p.s = len; else p.b = len;
+    p.ang = ang;
+  } else if (idx === 2 && s.type === 'tra') {
+    p.t = snapLen(lx - p.b * Math.cos(p.ang * RAD), UNIT);
+  }
+  const c = centroid(localPts(s.type, p));
+  const cx = c.x * (s.flip ? -1 : 1);
+  s.x = P0w.x + cx * cos - c.y * sin;
+  s.y = P0w.y + cx * sin + c.y * cos;
+}
+
+// 辺どうしの吸着。s を (x,y) に置いたとき、近くの他図形の辺にぴったり合う位置・角度を返す。
+function findSnap(s, others) {
+  let best = null;
+  const P = worldPts(s);
+  for (let i = 0; i < 4; i++) {
+    const m0 = P[i], m1 = P[(i + 1) % 4];
+    const am = Math.atan2(m1.y - m0.y, m1.x - m0.x) / RAD;
+    for (const o of others) {
+      const Q = worldPts(o);
+      const co = centroid(Q);
+      for (let j = 0; j < 4; j++) {
+        const o0 = Q[j], o1 = Q[(j + 1) % 4];
+        const L = Math.hypot(o1.x - o0.x, o1.y - o0.y);
+        if (L < 1) continue;
+        const ao = Math.atan2(o1.y - o0.y, o1.x - o0.x) / RAD;
+        let d = ((am - ao) % 180 + 180) % 180;
+        if (d > 90) d -= 180;
+        if (Math.abs(d) > SNAP_ANG) continue;
+        // 向きを完全にそろえた状態で判定
+        const rot = s.rot - d;
+        const P2 = worldPts({ ...s, rot });
+        const n0 = P2[i], n1 = P2[(i + 1) % 4];
+        const u = { x: (o1.x - o0.x) / L, y: (o1.y - o0.y) / L };
+        const n = { x: -u.y, y: u.x };
+        const mid = { x: (n0.x + n1.x) / 2, y: (n0.y + n1.y) / 2 };
+        const dist = (mid.x - o0.x) * n.x + (mid.y - o0.y) * n.y;
+        if (Math.abs(dist) > SNAP_DIST) continue;
+        // 2つの図形が辺の反対側にあること（重ならない向き）
+        const sideM = (s.x - mid.x) * n.x + (s.y - mid.y) * n.y;
+        const sideO = (co.x - o0.x) * n.x + (co.y - o0.y) * n.y;
+        if (sideM * sideO >= 0) continue;
+        // 辺が横方向に重なっていること
+        const t0 = (n0.x - o0.x) * u.x + (n0.y - o0.y) * u.y;
+        const t1 = (n1.x - o0.x) * u.x + (n1.y - o0.y) * u.y;
+        const overlap = Math.min(Math.max(t0, t1), L) - Math.max(Math.min(t0, t1), 0);
+        if (overlap < 8) continue;
+        const score = Math.abs(dist) + Math.abs(d) * 1.5;
+        if (!best || score < best.score) best = { score, rot, dist, u, n, t0, t1, L, o0, o1 };
+      }
+    }
+  }
+  if (!best) return null;
+  let x = s.x - best.dist * best.n.x;
+  let y = s.y - best.dist * best.n.y;
+  // 辺に沿った方向は、いちばん近い頂点どうしが近ければ合わせる
+  let shift = null;
+  for (const tm of [best.t0, best.t1]) {
+    for (const to of [0, best.L]) {
+      if (shift === null || Math.abs(to - tm) < Math.abs(shift)) shift = to - tm;
+    }
+  }
+  if (Math.abs(shift) <= SNAP_DIST) { x += shift * best.u.x; y += shift * best.u.y; }
+  return { x, y, rot: normDeg(best.rot), line: [best.o0, best.o1] };
+}
+
+// ===== 描画 =====
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const ptsStr = (pts) => pts.map((v) => v.x.toFixed(2) + ',' + v.y.toFixed(2)).join(' ');
+
+function render() {
+  shapesG.replaceChildren();
+  snapG.replaceChildren();
+  overlayG.replaceChildren();
+  for (const s of state.shapes) {
+    const str = ptsStr(worldPts(s));
+    const g = el('g', { 'data-id': s.id }, shapesG);
+    el('polygon', { points: str, fill: s.color, stroke: '#2b2b2b', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
+    // 細い図形でも選びやすいよう、透明な太い輪郭で当たり判定を広げる
+    el('polygon', { points: str, fill: 'none', stroke: 'rgba(0,0,0,0)', 'stroke-width': 18, 'pointer-events': 'stroke' }, g);
+  }
+  if (snapLine) {
+    el('line', {
+      x1: snapLine[0].x, y1: snapLine[0].y, x2: snapLine[1].x, y2: snapLine[1].y,
+      stroke: '#ff6a00', 'stroke-width': 8, 'stroke-linecap': 'round', opacity: 0.8, 'pointer-events': 'none'
+    }, snapG);
+  }
+  const s = getSelected();
+  if (s) {
+    const pts = worldPts(s);
+    el('polygon', {
+      points: ptsStr(pts), fill: 'none', stroke: '#1565ff', 'stroke-width': 5,
+      'stroke-linejoin': 'round', 'stroke-dasharray': '10 6', 'pointer-events': 'none'
+    }, overlayG);
+    // 回転ハンドル
+    const r = Math.max(...pts.map((v) => Math.hypot(v.x - s.x, v.y - s.y))) + 36;
+    const hx = s.x + r * Math.sin(s.rot * RAD), hy = s.y - r * Math.cos(s.rot * RAD);
+    el('line', { x1: s.x, y1: s.y, x2: hx, y2: hy, stroke: '#1565ff', 'stroke-width': 3, 'stroke-dasharray': '4 4', 'pointer-events': 'none' }, overlayG);
+    el('circle', { cx: hx, cy: hy, r: 22, fill: '#fff', stroke: '#1565ff', 'stroke-width': 4, 'pointer-events': 'none' }, overlayG);
+    const t = el('text', { x: hx, y: hy + 9, 'text-anchor': 'middle', 'font-size': 26, fill: '#1565ff', 'font-weight': 700, 'pointer-events': 'none' }, overlayG);
+    t.textContent = '↻';
+    el('circle', { cx: hx, cy: hy, r: 32, fill: 'rgba(0,0,0,0)', 'data-handle': 'rot' }, overlayG);
+    // 変形ハンドル
+    for (const idx of TYPES[s.type].handles) {
+      const v = pts[idx];
+      el('circle', { cx: v.x, cy: v.y, r: 14, fill: '#1565ff', stroke: '#fff', 'stroke-width': 4, 'pointer-events': 'none' }, overlayG);
+      el('circle', { cx: v.x, cy: v.y, r: 28, fill: 'rgba(0,0,0,0)', 'data-handle': String(idx) }, overlayG);
+    }
+  }
+  $('empty-hint').style.display = state.shapes.length ? 'none' : '';
+  $('grid').style.display = state.gridOn ? '' : 'none';
+  updateButtons();
+}
+
+function updateButtons() {
+  const has = !!getSelected();
+  document.querySelectorAll('[data-need-sel]').forEach((b) => { b.disabled = !has; });
+  document.querySelectorAll('.swatch').forEach((b) => { b.disabled = !has; });
+  $('btn-undo').disabled = hIndex <= 0;
+  $('btn-redo').disabled = hIndex >= history.length - 1;
+  $('btn-clear').disabled = state.shapes.length === 0;
+  $('btn-snap').setAttribute('aria-pressed', String(state.snapOn));
+  $('btn-grid').setAttribute('aria-pressed', String(state.gridOn));
+}
+
+// ===== 状態操作・履歴 =====
+const getSelected = () => state.shapes.find((s) => s.id === selectedId) || null;
+const byId = (id) => state.shapes.find((s) => s.id === id) || null;
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* 保存できない環境でも動作は続ける */ }
+}
+
+function commit() {
+  const snap = JSON.stringify(state.shapes);
+  if (history[hIndex] === snap) return;
+  history = history.slice(0, hIndex + 1);
+  history.push(snap);
+  if (history.length > HISTORY_MAX + 1) history.shift();
+  hIndex = history.length - 1;
+  save();
+}
+
+function restore() {
+  state.shapes = JSON.parse(history[hIndex]);
+  if (!getSelected()) selectedId = null;
+  save();
+  render();
+}
+
+function addShape(type, x, y) {
+  const T = TYPES[type];
+  const s = {
+    id: nextId++, type, p: { ...T.p }, x, y, rot: 0, flip: false, color: T.color,
+    nextH: 1, nextV: 2 // 「ふやす」で使う辺（1=右, 2=上。複製ごとに反対側へ入れ替わる）
+  };
+  state.shapes.push(s);
+  selectedId = s.id;
+  return s;
+}
+
+function canvasCenter() {
+  const r = svg.getBoundingClientRect();
+  let x = r.width / 2, y = r.height / 2;
+  // 同じ場所に重ならないよう少しずらす
+  while (state.shapes.some((s) => Math.abs(s.x - x) < 4 && Math.abs(s.y - y) < 4)) { x += UNIT; y += UNIT; }
+  return { x, y };
+}
+
+// 選んだ辺の中点を中心に180°まわした複製を置く → 辺を共有してとなりに並ぶ
+function duplicate(axis) {
+  const s = getSelected();
+  if (!s) return;
+  const e = axis === 'h' ? s.nextH : s.nextV;
+  const P = worldPts(s);
+  const a = P[e], b = P[(e + 1) % 4];
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  const c = JSON.parse(JSON.stringify(s));
+  c.id = nextId++;
+  c.x = 2 * mx - s.x;
+  c.y = 2 * my - s.y;
+  c.rot = normDeg(s.rot + 180);
+  c.nextH = (s.nextH + 2) % 4;
+  c.nextV = (s.nextV + 2) % 4;
+  state.shapes.push(c);
+  selectedId = c.id;
+  commit();
+  render();
+}
+
+function rotateSel(delta) {
+  const s = getSelected();
+  if (!s) return;
+  s.rot = normDeg(Math.round((s.rot + delta) / ROT_STEP) * ROT_STEP);
+  commit(); render();
+}
+
+// ===== ポインター操作 =====
+function toCanvas(e) {
+  const r = svg.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function startMoveDrag(s, e, pt, fromTray) {
+  drag = { mode: 'move', id: s.id, pointerId: e.pointerId, start: pt, orig: { x: s.x, y: s.y, rot: s.rot }, fromTray, moved: false };
+}
+
+svg.addEventListener('pointerdown', (e) => {
+  if (drag || trayPending) return; // 2本目の指は無視
+  e.preventDefault();
+  const pt = toCanvas(e);
+  const handle = e.target.closest('[data-handle]');
+  const s = getSelected();
+  if (handle && s) {
+    const h = handle.getAttribute('data-handle');
+    if (h === 'rot') {
+      drag = { mode: 'rot', id: s.id, pointerId: e.pointerId };
+    } else {
+      drag = { mode: 'deform', id: s.id, pointerId: e.pointerId, idx: Number(h), P0w: worldPts(s)[0] };
+    }
+    return;
+  }
+  const g = e.target.closest('[data-id]');
+  if (g) {
+    const t = byId(Number(g.getAttribute('data-id')));
+    selectedId = t.id;
+    startMoveDrag(t, e, pt, false);
+    render();
+    return;
+  }
+  selectedId = null;
+  render();
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (trayPending && e.pointerId === trayPending.pointerId) {
+    if (Math.hypot(e.clientX - trayPending.x0, e.clientY - trayPending.y0) > 12) {
+      // トレイからドラッグして取り出す
+      const pt = toCanvas(e);
+      const s = addShape(trayPending.type, pt.x, pt.y);
+      startMoveDrag(s, e, pt, true);
+      trayPending = null;
+      render();
+    }
+    return;
+  }
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  const s = byId(drag.id);
+  if (!s) { drag = null; return; }
+  const pt = toCanvas(e);
+  if (drag.mode === 'move') {
+    const dx = pt.x - drag.start.x, dy = pt.y - drag.start.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 3) return;
+    drag.moved = true;
+    s.x = drag.orig.x + dx;
+    s.y = drag.orig.y + dy;
+    s.rot = drag.orig.rot;
+    snapLine = null;
+    if (state.snapOn) {
+      const snap = findSnap(s, state.shapes.filter((o) => o !== s));
+      if (snap) { s.x = snap.x; s.y = snap.y; s.rot = snap.rot; snapLine = snap.line; }
+    }
+  } else if (drag.mode === 'rot') {
+    const a = Math.atan2(pt.y - s.y, pt.x - s.x) / RAD + 90;
+    s.rot = normDeg(Math.round(a / ROT_STEP) * ROT_STEP);
+  } else if (drag.mode === 'deform') {
+    deform(s, drag.idx, drag.P0w, pt);
+  }
+  render();
+});
+
+function endPointer(e) {
+  if (trayPending && e.pointerId === trayPending.pointerId) {
+    // トレイをタップ → キャンバスの真ん中に置く
+    const c = canvasCenter();
+    addShape(trayPending.type, c.x, c.y);
+    trayPending = null;
+    commit(); render();
+    return;
+  }
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  if (drag.fromTray) {
+    // キャンバスの外で離したら取り出しをやめる
+    const r = svg.getBoundingClientRect();
+    const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (!inside || e.type === 'pointercancel') {
+      state.shapes = state.shapes.filter((s) => s.id !== drag.id);
+      selectedId = null;
+    }
+  }
+  drag = null;
+  snapLine = null;
+  commit();
+  render();
+}
+window.addEventListener('pointerup', endPointer);
+window.addEventListener('pointercancel', endPointer);
+
+// ===== トレイ =====
+document.querySelectorAll('.tray-item').forEach((btn) => {
+  const type = btn.dataset.type;
+  // 見本の図形を描く
+  const pts = localPts(type, TYPES[type].p);
+  const xs = pts.map((v) => v.x), ys = pts.map((v) => v.y);
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+  const w = Math.max(...xs) - minX, h = Math.max(...ys) - minY;
+  const thumb = btn.querySelector('svg');
+  thumb.setAttribute('viewBox', `${minX - 4} ${minY - 4} ${w + 8} ${h + 8}`);
+  el('polygon', { points: ptsStr(pts), fill: TYPES[type].color, stroke: '#2b2b2b', 'stroke-width': 3, 'stroke-linejoin': 'round' }, thumb);
+
+  btn.addEventListener('pointerdown', (e) => {
+    if (drag || trayPending) return;
+    e.preventDefault();
+    trayPending = { type, pointerId: e.pointerId, x0: e.clientX, y0: e.clientY };
+  });
+});
+
+const colorsBox = $('colors');
+for (const col of COLORS) {
+  const b = document.createElement('button');
+  b.className = 'swatch';
+  b.style.background = col;
+  b.setAttribute('aria-label', 'いろ');
+  b.addEventListener('click', () => {
+    const s = getSelected();
+    if (!s) return;
+    s.color = col;
+    commit(); render();
+  });
+  colorsBox.appendChild(b);
+}
+
+// ===== ツールバー =====
+$('btn-undo').addEventListener('click', () => { if (hIndex > 0) { hIndex--; restore(); } });
+$('btn-redo').addEventListener('click', () => { if (hIndex < history.length - 1) { hIndex++; restore(); } });
+$('btn-dup-h').addEventListener('click', () => duplicate('h'));
+$('btn-dup-v').addEventListener('click', () => duplicate('v'));
+$('btn-rot-l').addEventListener('click', () => rotateSel(-ROT_STEP));
+$('btn-rot-r').addEventListener('click', () => rotateSel(ROT_STEP));
+$('btn-flip').addEventListener('click', () => {
+  const s = getSelected();
+  if (!s) return;
+  s.flip = !s.flip;
+  commit(); render();
+});
+$('btn-front').addEventListener('click', () => {
+  const s = getSelected();
+  if (!s) return;
+  state.shapes = state.shapes.filter((o) => o !== s).concat(s);
+  commit(); render();
+});
+$('btn-back').addEventListener('click', () => {
+  const s = getSelected();
+  if (!s) return;
+  state.shapes = [s].concat(state.shapes.filter((o) => o !== s));
+  commit(); render();
+});
+$('btn-del').addEventListener('click', () => {
+  state.shapes = state.shapes.filter((o) => o.id !== selectedId);
+  selectedId = null;
+  commit(); render();
+});
+$('btn-snap').addEventListener('click', () => { state.snapOn = !state.snapOn; save(); render(); });
+$('btn-grid').addEventListener('click', () => { state.gridOn = !state.gridOn; save(); render(); });
+
+$('btn-clear').addEventListener('click', () => $('confirm').classList.add('open'));
+$('confirm-no').addEventListener('click', () => $('confirm').classList.remove('open'));
+$('confirm-yes').addEventListener('click', () => {
+  state.shapes = [];
+  selectedId = null;
+  $('confirm').classList.remove('open');
+  commit(); render();
+});
+
+// かんせい: まわりのボタンを隠して作品だけにする（スクリーンショット用）
+let finishTimer = null;
+$('btn-finish').addEventListener('click', () => {
+  selectedId = null;
+  render();
+  document.body.classList.add('finished');
+  const hint = $('finish-hint');
+  hint.classList.add('show');
+  clearTimeout(finishTimer);
+  finishTimer = setTimeout(() => hint.classList.remove('show'), 2000);
+});
+window.addEventListener('pointerdown', (e) => {
+  if (!document.body.classList.contains('finished')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  document.body.classList.remove('finished');
+  $('finish-hint').classList.remove('show');
+}, true);
+
+// iPad Safari の拡大・長押しメニューを防ぐ
+['gesturestart', 'gesturechange', 'dblclick', 'contextmenu'].forEach((t) =>
+  document.addEventListener(t, (e) => e.preventDefault()));
+
+// ===== 起動 =====
+function load() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { data = null; }
+  if (!data || typeof data !== 'object') return;
+  const okNum = Number.isFinite;
+  const shapes = Array.isArray(data.shapes) ? data.shapes : [];
+  for (const s of shapes) {
+    const T = s && TYPES[s.type];
+    if (!T || !s.p || ![s.x, s.y, s.rot].every(okNum)) continue;
+    if (!Object.keys(T.p).every((k) => okNum(s.p[k]))) continue;
+    const p = {};
+    for (const k of Object.keys(T.p)) p[k] = s.p[k];
+    state.shapes.push({
+      id: nextId++, type: s.type, p, x: s.x, y: s.y, rot: normDeg(s.rot), flip: !!s.flip,
+      color: typeof s.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(s.color) ? s.color : T.color,
+      nextH: [1, 3].includes(s.nextH) ? s.nextH : 1,
+      nextV: [0, 2].includes(s.nextV) ? s.nextV : 2
+    });
+  }
+  if (typeof data.snapOn === 'boolean') state.snapOn = data.snapOn;
+  if (typeof data.gridOn === 'boolean') state.gridOn = data.gridOn;
+}
+
+load();
+commit();
+render();
+</script>
+</body>
+</html>
