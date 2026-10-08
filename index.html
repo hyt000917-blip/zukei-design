@@ -37,18 +37,32 @@
 
   /* ---- ツールバー ---- */
   #toolbar {
-    display: flex; flex-wrap: wrap; align-items: stretch; justify-content: center; gap: 6px;
-    padding: 8px 10px; background: var(--panel); border-bottom: 2px solid var(--line);
+    display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px;
+    padding: 6px 10px; background: var(--panel); border-bottom: 2px solid var(--line);
   }
   .tb-group { display: flex; gap: 6px; padding-right: 8px; border-right: 2px solid var(--line); }
   .tb-group:last-child { border-right: none; padding-right: 0; }
   .tb {
-    width: 68px; min-height: 64px; padding: 4px 2px; text-align: center;
+    width: 72px; height: 54px; padding: 2px; text-align: center;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     border: 2px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer;
-    font-size: 13px; font-weight: 700; line-height: 1.1;
+    font-size: 12px; font-weight: 700; line-height: 1.1;
   }
-  .tb .ic { font-size: 24px; line-height: 1; }
+  .tb .ic { font-size: 20px; line-height: 1; }
+  /* 「合同な図形を ふやす」はアイコンを左、文字2行を右に置いて低くする */
+  .tb.wide { width: 128px; flex-direction: row; gap: 6px; }
+  .tb.wide .txt { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; }
+  .tb rt { font-size: 9px; font-weight: 400; }
+  /* タイトル欄（ツールバーの中） */
+  .title-group { flex: 1; min-width: 160px; align-items: center; }
+  .title-group label { font-size: 15px; font-weight: 700; color: var(--sub); white-space: nowrap; }
+  #title-input {
+    flex: 1; min-width: 0; height: 46px; padding: 0 12px;
+    font: inherit; font-size: 20px; font-weight: 700; color: var(--ink);
+    border: 2px solid var(--line); border-radius: 12px; background: #fff;
+    -webkit-user-select: text; user-select: text; touch-action: manipulation;
+  }
+  #title-input:focus { outline: none; border-color: var(--accent); }
   .tb:active:not(:disabled) { background: var(--accent-soft); transform: scale(0.96); }
   .tb:disabled { opacity: 0.35; }
   .tb[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
@@ -80,6 +94,13 @@
   .swatch:active:not(:disabled) { transform: scale(0.92); }
 
   #canvas-wrap { flex: 1; position: relative; min-width: 0; background: #fff; }
+  /* かんせい表示のときだけ、作品の上にタイトルを重ねて出す */
+  #title-text {
+    display: none; position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    max-width: 90%; padding: 4px 20px; border-radius: 12px; background: rgba(255,255,255,0.85);
+    font-size: 30px; font-weight: 800; text-align: center; pointer-events: none;
+  }
+  #title-text:empty { display: none !important; }
   #canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
   #empty-hint {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -88,6 +109,7 @@
 
   /* ---- かんせい（スクリーンショット用） ---- */
   body.finished #toolbar, body.finished #tray, body.finished #overlay, body.finished #empty-hint { display: none; }
+  body.finished #title-text { display: block; }
   #finish-hint {
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
     background: rgba(0,0,0,0.7); color: #fff; padding: 10px 20px; border-radius: 999px;
@@ -118,28 +140,23 @@
 <div id="toolbar">
   <div class="tb-group">
     <button class="tb" id="btn-undo"><span class="ic">↶</span>もどす</button>
-    <button class="tb" id="btn-redo"><span class="ic">↷</span>やり<br>なおす</button>
+    <button class="tb" id="btn-redo"><span class="ic">↷</span>やりなおす</button>
   </div>
   <div class="tb-group">
-    <button class="tb" id="btn-dup-h" data-need-sel><span class="ic">➡️</span>よこに<br>ふやす</button>
-    <button class="tb" id="btn-dup-v" data-need-sel><span class="ic">⬆️</span>たてに<br>ふやす</button>
-  </div>
-  <div class="tb-group">
-    <button class="tb" id="btn-rot-l" data-need-sel><span class="ic">⟲</span>ひだりに<br>まわす</button>
-    <button class="tb" id="btn-rot-r" data-need-sel><span class="ic">⟳</span>みぎに<br>まわす</button>
-    <button class="tb" id="btn-flip" data-need-sel><span class="ic">⇆</span>うら<br>がえす</button>
-  </div>
-  <div class="tb-group">
-    <button class="tb" id="btn-front" data-need-sel><span class="ic">⏫</span>まえへ</button>
-    <button class="tb" id="btn-back" data-need-sel><span class="ic">⏬</span>うしろへ</button>
+    <button class="tb wide" id="btn-dup-h" data-need-sel><span class="ic">➡️</span><span class="txt"><span><ruby>合同<rt>ごうどう</rt></ruby>な<ruby>図形<rt>ずけい</rt></ruby>を</span><span>よこに ふやす</span></span></button>
+    <button class="tb wide" id="btn-dup-v" data-need-sel><span class="ic">⬆️</span><span class="txt"><span><ruby>合同<rt>ごうどう</rt></ruby>な<ruby>図形<rt>ずけい</rt></ruby>を</span><span>たてに ふやす</span></span></button>
     <button class="tb danger" id="btn-del" data-need-sel><span class="ic">✖️</span>けす</button>
   </div>
   <div class="tb-group">
     <button class="tb" id="btn-snap" aria-pressed="true"><span class="ic">🧲</span>ぴったり</button>
     <button class="tb" id="btn-grid" aria-pressed="true"><span class="ic">▦</span>ほうがん</button>
   </div>
+  <div class="tb-group title-group">
+    <label for="title-input">タイトル</label>
+    <input id="title-input" type="text" maxlength="30" placeholder="もようの なまえ" autocomplete="off">
+  </div>
   <div class="tb-group">
-    <button class="tb danger" id="btn-clear"><span class="ic">🗑️</span>ぜんぶ<br>けす</button>
+    <button class="tb danger" id="btn-clear"><span class="ic">🗑️</span>ぜんぶけす</button>
     <button class="tb finish" id="btn-finish"><span class="ic">⭐</span>かんせい</button>
   </div>
 </div>
@@ -166,6 +183,7 @@
       <g id="overlay"></g>
     </svg>
     <div id="empty-hint">ひだりの かたちを<br>タッチしてね</div>
+    <div id="title-text"></div>
   </div>
 </div>
 
@@ -195,16 +213,16 @@ const HISTORY_MAX = 50;
 const STORE_KEY = 'zukei_design_v1';
 const COLORS = ['#4f8ff7', '#ff7eb6', '#ffd23f', '#5cd65c', '#ff8c42', '#a178ff', '#3fd0d4', '#ff5a5a', '#ffffff', '#6b6b6b'];
 
-// 図形の種類。p は形のパラメータ、handles は変形できる頂点番号
+// 図形の種類。p は形のパラメータ、rot は出したときの向き、handles は変形できる頂点番号
 // 頂点は P0=左下, P1=右下, P2=右上, P3=左上（ローカル座標、y は下向きが正）
 const TYPES = {
   par: { color: '#4f8ff7', p: { a: 120, b: 80, ang: 60 }, handles: [1, 3] },        // a:底辺 b:斜辺 ang:角度
-  rho: { color: '#ff7eb6', p: { s: 80, ang: 60 }, handles: [1, 3] },                 // s:一辺
+  rho: { color: '#ff7eb6', p: { s: 80, ang: 60 }, rot: 300, handles: [1, 3] },       // s:一辺。rot=300 でトランプのダイヤの向き
   tra: { color: '#ffd23f', p: { a: 160, t: 80, b: 80, ang: 60 }, handles: [1, 2, 3] } // a:下底 t:上底 b:左の辺
 };
 
 // ===== 状態 =====
-let state = { shapes: [], snapOn: true, gridOn: true };
+let state = { shapes: [], snapOn: true, gridOn: true, title: '' };
 let selectedId = null;
 let drag = null;       // 進行中のドラッグ
 let trayPending = null; // トレイを押した直後（タップかドラッグか未確定）
@@ -218,6 +236,7 @@ const svg = $('canvas');
 const shapesG = $('shapes');
 const snapG = $('snapfx');
 const overlayG = $('overlay');
+const titleInput = $('title-input');
 
 // ===== 幾何 =====
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -425,8 +444,7 @@ function restore() {
 function addShape(type, x, y) {
   const T = TYPES[type];
   const s = {
-    id: nextId++, type, p: { ...T.p }, x, y, rot: 0, flip: false, color: T.color,
-    nextH: 1, nextV: 2 // 「ふやす」で使う辺（1=右, 2=上。複製ごとに反対側へ入れ替わる）
+    id: nextId++, type, p: { ...T.p }, x, y, rot: T.rot || 0, flip: false, color: T.color
   };
   state.shapes.push(s);
   selectedId = s.id;
@@ -441,12 +459,23 @@ function canvasCenter() {
   return { x, y };
 }
 
-// 選んだ辺の中点を中心に180°まわした複製を置く → 辺を共有してとなりに並ぶ
+// 合同な図形を増やす: 選んだ辺の中点を中心に180°まわした複製を置く → 辺を共有してとなりに並ぶ。
+// 使う辺は画面上の向きで決める（よこ=いちばん右を向いた辺、たて=いちばん上を向いた辺）。
+// 同点のときは よこ=上寄り、たて=左寄り を選ぶ（ダイヤ向きのひし形でも2方向に広がるように）。
 function duplicate(axis) {
   const s = getSelected();
   if (!s) return;
-  const e = axis === 'h' ? s.nextH : s.nextV;
   const P = worldPts(s);
+  let e = 0, bestScore = -Infinity;
+  for (let i = 0; i < 4; i++) {
+    const a = P[i], b = P[(i + 1) % 4];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    let nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+    // 外向きの法線にそろえる
+    if (nx * ((a.x + b.x) / 2 - s.x) + ny * ((a.y + b.y) / 2 - s.y) < 0) { nx = -nx; ny = -ny; }
+    const score = axis === 'h' ? nx - ny * 0.01 : -ny - nx * 0.01;
+    if (score > bestScore + 1e-9) { bestScore = score; e = i; }
+  }
   const a = P[e], b = P[(e + 1) % 4];
   const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
   const c = JSON.parse(JSON.stringify(s));
@@ -454,19 +483,10 @@ function duplicate(axis) {
   c.x = 2 * mx - s.x;
   c.y = 2 * my - s.y;
   c.rot = normDeg(s.rot + 180);
-  c.nextH = (s.nextH + 2) % 4;
-  c.nextV = (s.nextV + 2) % 4;
   state.shapes.push(c);
   selectedId = c.id;
   commit();
   render();
-}
-
-function rotateSel(delta) {
-  const s = getSelected();
-  if (!s) return;
-  s.rot = normDeg(Math.round((s.rot + delta) / ROT_STEP) * ROT_STEP);
-  commit(); render();
 }
 
 // ===== ポインター操作 =====
@@ -482,6 +502,7 @@ function startMoveDrag(s, e, pt, fromTray) {
 svg.addEventListener('pointerdown', (e) => {
   if (drag || trayPending) return; // 2本目の指は無視
   e.preventDefault();
+  titleInput.blur();
   const pt = toCanvas(e);
   const handle = e.target.closest('[data-handle]');
   const s = getSelected();
@@ -573,8 +594,11 @@ window.addEventListener('pointercancel', endPointer);
 // ===== トレイ =====
 document.querySelectorAll('.tray-item').forEach((btn) => {
   const type = btn.dataset.type;
-  // 見本の図形を描く
-  const pts = localPts(type, TYPES[type].p);
+  // 見本の図形を描く（出したときと同じ向き）
+  const r = (TYPES[type].rot || 0) * RAD;
+  const pts = localPts(type, TYPES[type].p).map((v) => ({
+    x: v.x * Math.cos(r) - v.y * Math.sin(r), y: v.x * Math.sin(r) + v.y * Math.cos(r)
+  }));
   const xs = pts.map((v) => v.x), ys = pts.map((v) => v.y);
   const minX = Math.min(...xs), minY = Math.min(...ys);
   const w = Math.max(...xs) - minX, h = Math.max(...ys) - minY;
@@ -585,6 +609,7 @@ document.querySelectorAll('.tray-item').forEach((btn) => {
   btn.addEventListener('pointerdown', (e) => {
     if (drag || trayPending) return;
     e.preventDefault();
+    titleInput.blur();
     trayPending = { type, pointerId: e.pointerId, x0: e.clientX, y0: e.clientY };
   });
 });
@@ -609,26 +634,6 @@ $('btn-undo').addEventListener('click', () => { if (hIndex > 0) { hIndex--; rest
 $('btn-redo').addEventListener('click', () => { if (hIndex < history.length - 1) { hIndex++; restore(); } });
 $('btn-dup-h').addEventListener('click', () => duplicate('h'));
 $('btn-dup-v').addEventListener('click', () => duplicate('v'));
-$('btn-rot-l').addEventListener('click', () => rotateSel(-ROT_STEP));
-$('btn-rot-r').addEventListener('click', () => rotateSel(ROT_STEP));
-$('btn-flip').addEventListener('click', () => {
-  const s = getSelected();
-  if (!s) return;
-  s.flip = !s.flip;
-  commit(); render();
-});
-$('btn-front').addEventListener('click', () => {
-  const s = getSelected();
-  if (!s) return;
-  state.shapes = state.shapes.filter((o) => o !== s).concat(s);
-  commit(); render();
-});
-$('btn-back').addEventListener('click', () => {
-  const s = getSelected();
-  if (!s) return;
-  state.shapes = [s].concat(state.shapes.filter((o) => o !== s));
-  commit(); render();
-});
 $('btn-del').addEventListener('click', () => {
   state.shapes = state.shapes.filter((o) => o.id !== selectedId);
   selectedId = null;
@@ -646,9 +651,19 @@ $('confirm-yes').addEventListener('click', () => {
   commit(); render();
 });
 
-// かんせい: まわりのボタンを隠して作品だけにする（スクリーンショット用）
+// タイトル（作品の名前）
+titleInput.addEventListener('input', () => {
+  state.title = titleInput.value;
+  save();
+});
+// キーボードを閉じたとき、iPad で画面がずれたままにならないよう戻す
+titleInput.addEventListener('blur', () => window.scrollTo(0, 0));
+
+// かんせい: まわりのボタンを隠して作品とタイトルだけにする（スクリーンショット用）
 let finishTimer = null;
 $('btn-finish').addEventListener('click', () => {
+  titleInput.blur();
+  $('title-text').textContent = state.title.trim();
   selectedId = null;
   render();
   document.body.classList.add('finished');
@@ -684,16 +699,16 @@ function load() {
     for (const k of Object.keys(T.p)) p[k] = s.p[k];
     state.shapes.push({
       id: nextId++, type: s.type, p, x: s.x, y: s.y, rot: normDeg(s.rot), flip: !!s.flip,
-      color: typeof s.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(s.color) ? s.color : T.color,
-      nextH: [1, 3].includes(s.nextH) ? s.nextH : 1,
-      nextV: [0, 2].includes(s.nextV) ? s.nextV : 2
+      color: typeof s.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(s.color) ? s.color : T.color
     });
   }
   if (typeof data.snapOn === 'boolean') state.snapOn = data.snapOn;
   if (typeof data.gridOn === 'boolean') state.gridOn = data.gridOn;
+  if (typeof data.title === 'string') state.title = data.title.slice(0, 30);
 }
 
 load();
+titleInput.value = state.title;
 commit();
 render();
 </script>
